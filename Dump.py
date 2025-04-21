@@ -7,18 +7,14 @@ import utils
 
 paths = {}
 
-
 def convert_to_hook(offset_string, offset, class_name, file):
-    
     function_name = offset_string.split("(")[0].split(" ")[-1]
     function_name = function_name.replace(".", "_")
     return_type = offset_string.split("(")[0].split(" ")[-2]
     real_type = return_type
     params_string = offset_string.split("(")[1].split(")")[0]
     
-    
     params = re.findall(r"(\w+)\s+(\w+)", params_string)
-
     
     global paths
     
@@ -32,17 +28,12 @@ def convert_to_hook(offset_string, offset, class_name, file):
         else:
             return "void *"
     
-    
     return_type = get_type(return_type)
-    
-    
     
     func_params = ", ".join([(f"{get_type(param_type)} {name}") for param_type, name in params])
     func_params_types = ", ".join([(f"{get_type(param_type)}") for param_type, name in params])
-
     
     call_params = ", ".join([f"{name}" for param_type, name in params])
-
     
     im = findImport(offset_string)
     
@@ -93,17 +84,14 @@ def hook_field_offset(data):
     offset = data["offset"]
     
     try:
-        
         hook = f"{type} get_field_{name}() {{\n"
-        hook += f"  \t\t\treturn *({type} *)(uintptr_t)(this + {offset});\n";
-        hook += "   \t\t}\n";
+        hook += f"  \t\t\treturn *({type} *)(uintptr_t)(this + {offset});\n"
+        hook += "   \t\t}\n"
         hook += f"  \t\tvoid set_field_{name}({type} data) {{\n"
         hook += f"   \t\t\t*({type} *)(uintptr_t)(this + {offset}) = data; \n \t\t}} \n"
         return hook
     except: 
-       
         time.sleep(1)
-        
         return data
     
 def findImport(offset_string):
@@ -119,15 +107,12 @@ def create_directory(directory):
         os.makedirs(directory)
 
 def sanitize_filename(filename):
-    
     invalid_chars = {':', '*', '?', '<', '>', '|', '"', '/'}
     replace_chars = {'\\': '-', '/': '-', ':': '-', '*': '-', '?': '-', '<': '_', '>': '_', '|': '_', '"': '_'}
-    
     
     for char in invalid_chars:
         filename = filename.replace(char, '')
         
-    
     for char, replacement in replace_chars.items():
         filename = filename.replace(char, replacement)
     
@@ -152,9 +137,7 @@ def write_class_methods(namespace):
             for method_name, method_obj in class_obj.methods.items():
                 method_template = method_obj.getMethodTemplate()
                 im = findImport(method_template)
-                if im == "null":
-                    pass
-                else:
+                if im != "null":
                     classImports[im] = paths[im]
                 for i in method_obj.getAll()["params"]: 
                     try:
@@ -169,15 +152,15 @@ def write_class_methods(namespace):
                 if type in paths:
                     classImports[type] = paths[type]
                     
-            for i in classImports:
-                file.write("
-            file.write(f"class {class_name} {{\n")
+            for import_name, import_path in classImports.items():
+                file.write(f'#include "{import_path}"\n')
+                
+            file.write(f"\nclass {class_name} {{\n")
             file.write("\tpublic:\n")
             
             for field_name, field_obj in class_obj.fields.items():
                 method_template = field_obj.getAll()
                 hook = hook_field_offset(method_template)
-                
                 file.write(f"\t\t{hook}\n")
                 
             for method_name, method_obj in class_obj.methods.items():
@@ -198,9 +181,7 @@ def write_class_methods(namespace):
             for method_name, method_obj in struct_obj.methods.items():
                 method_template = method_obj.getMethodTemplate()
                 im = findImport(method_template)
-                if im == "null":
-                    pass
-                else:
+                if im != "null":
                     classImports[im] = paths[im]
                 for i in method_obj.getAll()["params"]: 
                     try:
@@ -215,15 +196,15 @@ def write_class_methods(namespace):
                 if type in paths:
                     classImports[type] = paths[type]
                     
-            for i in classImports:
-                file.write("
-            file.write(f"struct {struct_name} {{\n")
+            for import_name, import_path in classImports.items():
+                file.write(f'#include "{import_path}"\n')
+                
+            file.write(f"\nstruct {struct_name} {{\n")
             file.write("\tpublic:\n")
             
             for field_name, field_obj in struct_obj.fields.items():
                 method_template = field_obj.getAll()
                 hook = hook_field_offset(method_template)
-                
                 file.write(f"\t\t{hook}\n")
                 
             for method_name, method_obj in struct_obj.methods.items():
@@ -246,21 +227,19 @@ def set_import_path(namespace):
     base_directory = "../"
     for class_name, class_obj in tqdm(namespace.classes.items()):
         key = hasPath(paths, class_name)
-        path_name= os.path.join(base_directory, sanitize_filename(namespace.name), sanitize_filename(class_name)+".h")
+        path_name = os.path.join(base_directory, sanitize_filename(namespace.name), sanitize_filename(class_name)+".h")
         open("parsed/path.txt", "a").write(key + ": " + path_name + "\n")
-        open("parsed/main.cpp", "a").write("
-        
+        open("parsed/main.cpp", "a").write(f'#include "{path_name}"\n')
         paths[key] = path_name
     for struct_name, struct_obj in tqdm(namespace.structs.items()):
         key = hasPath(paths, "struct_"+struct_name)
-        path_name= os.path.join(base_directory, sanitize_filename(namespace.name), sanitize_filename( "struct_"+struct_name)+".h")
+        path_name = os.path.join(base_directory, sanitize_filename(namespace.name), sanitize_filename("struct_"+struct_name)+".h")
         open("parsed/path.txt", "a").write(key + ": " + path_name + "\n")
-        open("parsed/main.cpp", "a").write("
+        open("parsed/main.cpp", "a").write(f'#include "{path_name}"\n')
         paths[key] = path_name
         
 def main():
-    
-    dump_file_path = input("Enter Dump.cs Path: " )
+    dump_file_path = input("Enter Dump.cs Path: ")
     parser = Parser(dump_file_path)
     parser.init()
     
@@ -281,4 +260,3 @@ def main():
     
 if __name__ == "__main__":
     main()
-    

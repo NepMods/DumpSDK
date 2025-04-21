@@ -58,10 +58,9 @@ class Method:
                 mt += i
             else:
                 mt += i + ", "
-            j+= 1
+            j += 1
         mt += ") { }"
         return mt
-
 
 class Field:
     def __init__(self, data):
@@ -72,7 +71,6 @@ class Field:
 
     def getAll(self):
         return self.name
-
 
 class Class:
     def __init__(self, name):
@@ -114,7 +112,6 @@ class Class:
             ret["methods"][key] = self.methods[key].getAll()
 
         return ret
-
 
 class Struct:
     def __init__(self, name):
@@ -160,7 +157,6 @@ class Struct:
 
         return ret
 
-
 class Enum:
     def __init__(self, name):
         self.name = name
@@ -177,7 +173,6 @@ class Enum:
             ret["fields"][key] = self.fields[key].getAll()
 
         return ret
-
 
 class Namespace:
     def __init__(self, name):
@@ -239,32 +234,41 @@ class Namespace:
 
         return ret
 
-
 class Parser:
     def __init__(self, url):
         self.url = url
         self.namespaces = {}
+        self.nearNamespaceName = "DefaultNamespace"  
+        self.namespaces["DefaultNamespace"] = Namespace("DefaultNamespace") 
+        self.near = None
+        self.lastOffset = None
+        self.nearClass = None
+        self.nearEnum = None
 
     def getns(self, line):
         if "// Namespace: " in line:
             name = line.split("Namespace: ")[1].strip()
             if name == "":
                 name = "NO_NAME_SPACE"
-            ns = Namespace(name)
-            self.nearNamespaceName = name
-            self.nearNamespace = ns
             if name not in self.namespaces:
-                self.namespaces[name] = ns
+                self.namespaces[name] = Namespace(name)
+            self.nearNamespaceName = name
 
     def getClass(self, line):
         if " class " in line:
             name = ""
             types = {}
-            if " : " in line:
-                name = line.split("class")[1].split(":")[0].strip()
-            else:
-                name = line.split("class")[1].split("//")[0].strip()
-            types = line.split(" class ")[0].split()
+            try:
+                if " : " in line:
+                    name = line.split("class")[1].split(":")[0].strip()
+                else:
+                    name = line.split("class")[1].split("//")[0].strip()
+                types = line.split(" class ")[0].split()
+            except:
+                return  
+            if not self.nearNamespaceName in self.namespaces:
+                self.nearNamespaceName = "DefaultNamespace"
+                self.namespaces["DefaultNamespace"] = Namespace("DefaultNamespace")
             if name in self.namespaces[self.nearNamespaceName].classes:
                 self.nearClass = name.strip() + "(1)"
             else:
@@ -279,11 +283,17 @@ class Parser:
         if " struct " in line:
             name = ""
             types = {}
-            if " : " in line:
-                name = line.split("struct")[1].split(":")[0].strip()
-            else:
-                name = line.split("struct")[1].split("//")[0].strip()
-            types = line.split(" struct ")[0].split()
+            try:
+                if " : " in line:
+                    name = line.split("struct")[1].split(":")[0].strip()
+                else:
+                    name = line.split("struct")[1].split("//")[0].strip()
+                types = line.split(" struct ")[0].split()
+            except:
+                return  
+            if not self.nearNamespaceName in self.namespaces:
+                self.nearNamespaceName = "DefaultNamespace"
+                self.namespaces["DefaultNamespace"] = Namespace("DefaultNamespace")
             if name in self.namespaces[self.nearNamespaceName].structs:
                 self.nearClass = name.strip() + "(1)"
             else:
@@ -296,88 +306,99 @@ class Parser:
 
     def getEnum(self, line):
         if "enum " in line:
-            name = line.split("enum ")[1].split(" ")[0].strip()
+            try:
+                name = line.split("enum ")[1].split(" ")[0].strip()
+            except:
+                return  
+            if not self.nearNamespaceName in self.namespaces:
+                self.nearNamespaceName = "DefaultNamespace"
+                self.namespaces["DefaultNamespace"] = Namespace("DefaultNamespace")
             enum = Enum(name)
             self.nearEnum = enum
-            if self.nearNamespaceName not in self.namespaces:
-                self.namespaces[self.nearNamespaceName] = Namespace(self.nearNamespaceName)
             self.namespaces[self.nearNamespaceName].addEnum(name, enum)
             self.near = "enum"
 
     def getEnumField(self, line):
         if "public const" in line or "private const" in line:
             if self.near == "enum":
-                parts = line.strip().split(" ")
-                name = parts[-2]
-                value = parts[-1].rstrip(";")
-                field = {"name": name, "value": value}
-                self.nearEnum.addField(name, field)
+                try:
+                    parts = line.strip().split(" ")
+                    name = parts[-2]
+                    value = parts[-1].rstrip(";")
+                    field = {"name": name, "value": value}
+                    self.nearEnum.addField(name, field)
+                except:
+                    pass  
 
     def getOffset(self, line):
         if "Offset: 0x" in line:
-            offset = line.split("Offset: ")[1].split(" ")[0]
-            self.lastOffset = offset
+            try:
+                offset = line.split("Offset: ")[1].split(" ")[0]
+                self.lastOffset = offset
+            except:
+                pass  
 
     def getMethod(self, line):
         if ") { }" in line:
-            name = line.split("(")[0].split()[-1]
             try:
+                name = line.split("(")[0].split()[-1]
                 if ">" in line.split(f" {name}")[-2].split()[-1]:
                     type = line.split("<")[0].split()[-1] + "<" + line.split("<")[1].split(">")[0] + ">"
                 else:
                     type = line.split(f" {name}")[0].split(" ")[-1]
+                args = line.split("(")[1].split(")")[0]
+                nameMeth = type + " " + name + "(" + args + ")"
+
+                if not self.nearNamespaceName in self.namespaces:
+                    self.nearNamespaceName = "DefaultNamespace"
+                    self.namespaces["DefaultNamespace"] = Namespace("DefaultNamespace")
+
+                data = {}
+                data["name"] = name
+                data["type"] = type
+                data["offset"] = self.lastOffset
+                data["modifier"] = line.split(f" {type}")[0].split()
+                data["params"] = args.split(", ") if args else []
+
+                self.namespaces[self.nearNamespaceName].get(self.near, self.nearClass).addMethod(name, data)
             except:
-                type = line.split(f" {name}")[0].split(" ")[-1]
-            args = line.split("(")[1].split(")")[0]
-            nameMeth = type + " " + name + "(" + args + ")"
+                pass  
 
-            if nameMeth in self.namespaces[self.nearNamespaceName].get(self.near, self.nearClass).methods:
-                print(nameMeth)
-                time.sleep(1)
-
-            data = {}
-            data["name"] = name
-            data["type"] = type
-            data["offset"] = self.lastOffset
-            data["modifier"] = line.split(f" {type}")[0].split()
-            data["params"] = args.split(", ")
-
-            self.namespaces[self.nearNamespaceName].get(self.near, self.nearClass).addMethod(name, data)
-            
     def getField(self, line):
         field_type = ["class", "struct"]
-        if "; // 0x" in line:
-            if self.near in field_type:
+        if "; // 0x" in line and self.near in field_type:
+            try:
                 if "/*" in line:
                     line = line.split("/*")[0].strip() + line.split("*/")[1].strip()
                 
                 name = line.split("; // 0x")[0].split(" ")[-1]
-                offset = "0x"+ line.split("; // 0x")[1].split("\n")[0]
-                try:
-                    if ">" in line.split(f" {name}")[-2].split()[-1]:
-                        type = line.split("<")[0].split()[-1] + "<" + line.split("<")[1].split(">")[0] + ">"
-                    else:
-                        type = line.split(f" {name}")[0].split(" ")[-1]
-                except:
+                offset = "0x" + line.split("; // 0x")[1].split("\n")[0]
+                if ">" in line.split(f" {name}")[-2].split()[-1]:
+                    type = line.split("<")[0].split()[-1] + "<" + line.split("<")[1].split(">")[0] + ">"
+                else:
                     type = line.split(f" {name}")[0].split(" ")[-1]
                 
                 modifiers = line.split(type)[0].strip().split()
-                if name in self.namespaces[self.nearNamespaceName].get(self.near, self.nearClass).fields:
-                    print(name)
-                    time.sleep(1)
+                if not self.nearNamespaceName in self.namespaces:
+                    self.nearNamespaceName = "DefaultNamespace"
+                    self.namespaces["DefaultNamespace"] = Namespace("DefaultNamespace")
+                
                 data = {}
                 data["name"] = name
                 data["type"] = type
                 data["offset"] = offset
                 data["modifier"] = modifiers
                 self.namespaces[self.nearNamespaceName].get(self.near, self.nearClass).addField(name, data)
-            
-                
-        
+            except:
+                pass 
+
     def init(self):
         self.text = open(self.url, "r").readlines()
 
         for line in tqdm(self.text):
+            line = line.strip()
+            if not line:
+                continue
             self.getns(line)
             self.getClass(line)
             self.getStruct(line)
