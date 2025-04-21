@@ -28,5 +28,6 @@ python3 Dump.py
 
 ## 👥 Credits
 
-- **Developed by:** [@nepmods](https://github.com/nepmods) (GitHub)  
+- **Developed by:** [@nepmods](https://github.com/nepmods) (GitHub)
+- **Contributed by:** [@MrTusarRX](https://github.com/MrTusarRX) (GitHub) 
 - **Support:** [@cheaterNeverDies](https://t.me/cheaterNeverDies), [@YourAnnonOne](https://t.me/YourAnnonOne) (Telegram)
