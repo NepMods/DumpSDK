@@ -9,7 +9,7 @@ Its not usable if you include directly. Function pointers are perfectly generate
 
 ONLY INCLUDE NEEDED HEADER IN PROJECT.
 
-Coded By: @nepmods
+Coded By: @nepmods / TusharMods
 
 Support: @CheaterNeverDies @YourAnnonOne
 
