@@ -1,27 +1,32 @@
-Dump.cs To Struct Generator:
+# Dump.cs to Struct Generator
 
-Its not perfect.  
+> **Note:** This tool is **not perfect** and is intended for experienced developers who can modify and adapt it to their needs.
 
-Issues: -
-many
+---
 
-Its not usable if you include directly. Function pointers are perfectly generated But You will have to Modify as you need.Overall, if you will need knowledge to Use it. 
+## ⚠️ Known Issues
+- Many — use at your own discretion.
+- Direct inclusion is **not usable** without modification.
+- Function pointers are correctly generated, but **manual adjustments are required**.
+- You **must** only include the headers you need in your project.
+- **DO NOT** include unnecessary headers.
 
-ONLY INCLUDE NEEDED HEADER IN PROJECT.
+---
 
-Coded By: @nepmods / @MrTusharX
+## 🔧 Usage
 
-Support: @CheaterNeverDies @YourAnnonOne
+```bash
+# Install Python 3
+apt install python3
 
-Run Tutorial:
+# Install required Python module
+pip install tqdm
 
-
-apt install python3 
-
-pip insta tqdm 
-
+# Run the script
 python3 Dump.py
+```
 
-Github: https://github.com/NepMods/DumpSDK
+## 👥 Credits
 
-I Hope Knowledged Devs in my group will Modify it as good they can and share with others.
+- **Developed by:** [@nepmods](https://github.com/nepmods) (GitHub)  
+- **Support:** [@cheaterNeverDies](https://t.me/cheaterNeverDies), [@YourAnnonOne](https://t.me/YourAnnonOne) (Telegram)
