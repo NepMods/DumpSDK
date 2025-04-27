@@ -22,6 +22,9 @@ apt install python3
 # Install required Python module
 pip install tqdm
 
+#go to the directory
+cd DumpSDK
+
 # Run the script
 python3 Dump.py
 ```
