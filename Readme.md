@@ -19,8 +19,14 @@
 # Install Python 3
 apt install python3
 
+#pkg for github repo clone
+pkg install git
+
 # Install required Python module
 pip install tqdm
+
+#clone the repo
+git clone https://github.com/NepMods/DumpSDK.git
 
 #go to the directory
 cd DumpSDK
